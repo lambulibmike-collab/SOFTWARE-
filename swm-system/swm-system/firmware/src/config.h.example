@@ -1,0 +1,15 @@
+#pragma once
+#define NODE_ID "bin01"
+#define BIN_HEIGHT_CM 120.0f
+#define SLEEP_MINUTES 15
+#define TX_EVERY_N_CYCLES 8
+#define APN "YOUR_MOBILE_APN"
+#define MQTT_HOST "YOUR_BROKER_HOST"
+#define MQTT_PORT 1883 // development only; use TLS-capable transport in production
+#define MQTT_USER "bin01"
+#define MQTT_PASSWORD "CHANGE_ME"
+#define TRIG_PIN 5
+#define ECHO_PIN 18
+#define MODEM_RX 16
+#define MODEM_TX 17
+#define BAT_PIN 34

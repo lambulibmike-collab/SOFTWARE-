@@ -1,0 +1,52 @@
+services:
+  db:
+    image: postgis/postgis:15-3.4
+    environment:
+      POSTGRES_DB: ${DB_NAME:-swm}
+      POSTGRES_USER: ${DB_USER:-swm_app}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./db/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-swm_app} -d ${DB_NAME:-swm}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+  mosquitto:
+    image: eclipse-mosquitto:2
+    ports: ["1883:1883"]
+    volumes:
+      - ./backend/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+    restart: unless-stopped
+  api:
+    build: ./backend
+    environment:
+      PORT: 3000
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-swm}
+      DB_USER: ${DB_USER:-swm_app}
+      DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env}
+      DEMO_MODE: ${DEMO_MODE:-false}
+      MQTT_URL: ${MQTT_URL:-mqtt://mosquitto:1883}
+      MQTT_USERNAME: ${MQTT_USERNAME:-nodered}
+      MQTT_PASSWORD: ${MQTT_PASSWORD:-}
+      ALERT_THRESHOLD: ${ALERT_THRESHOLD:-80}
+    depends_on:
+      db: { condition: service_healthy }
+      mosquitto: { condition: service_started }
+    ports: ["3000:3000"]
+    restart: unless-stopped
+  web:
+    image: nginx:1.27-alpine
+    ports: ["${WEB_PORT:-8080}:80"]
+    volumes:
+      - ./dashboard:/usr/share/nginx/html:ro
+      - ./backend/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on: [api]
+    restart: unless-stopped
+volumes:
+  pgdata:
